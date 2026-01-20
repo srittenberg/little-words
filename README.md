@@ -2,6 +2,8 @@
 
 A private, mobile-first web app that captures and shares first spoken words with close family.
 
+🌐 **Live at:** [little-words.app](https://little-words.app)
+
 ## Setup
 
 1. Install dependencies:

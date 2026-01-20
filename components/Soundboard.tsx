@@ -29,7 +29,19 @@ export default function Soundboard({ words }: SoundboardProps) {
     };
   }, [words]);
 
+  // Haptic feedback helper function
+  const triggerHaptic = () => {
+    // Check if Vibration API is available (mobile browsers)
+    if ('vibrate' in navigator) {
+      // Short, subtle vibration (10ms) for a light tap feel
+      navigator.vibrate(10);
+    }
+  };
+
   const handlePlay = (word: Word) => {
+    // Trigger haptic feedback on tap
+    triggerHaptic();
+
     // Stop any currently playing audio
     if (playingId) {
       const currentAudio = audioRefs.current.get(playingId);
