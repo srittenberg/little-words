@@ -46,8 +46,13 @@ export default function Soundboard({ words }: SoundboardProps) {
   const triggerHaptic = () => {
     // Check if Vibration API is available (mobile browsers)
     if ('vibrate' in navigator) {
-      // Short, subtle vibration (10ms) for a light tap feel
-      navigator.vibrate(10);
+      try {
+        // Use a longer duration (30ms) for better reliability across devices
+        // iOS Safari sometimes needs a slightly longer duration to register
+        navigator.vibrate(30);
+      } catch (e) {
+        // Silently fail if vibration is blocked or not supported
+      }
     }
   };
 
