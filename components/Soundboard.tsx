@@ -23,6 +23,7 @@ export default function Soundboard({ words }: SoundboardProps) {
   const [tappedId, setTappedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const iosHapticSwitchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Preload audio elements
@@ -44,11 +45,21 @@ export default function Soundboard({ words }: SoundboardProps) {
 
   // Haptic feedback helper function
   const triggerHaptic = () => {
-    // Check if Vibration API is available (mobile browsers)
-    if ('vibrate' in navigator) {
+    // iOS Safari doesn't support navigator.vibrate(), so we use a workaround
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    if (isIOS && iosHapticSwitchRef.current) {
+      // iOS 18+ workaround: toggle a switch-style checkbox to trigger haptic
+      const switchEl = iosHapticSwitchRef.current;
+      switchEl.checked = !switchEl.checked;
+      // Toggle back immediately to allow repeated haptics
+      setTimeout(() => {
+        switchEl.checked = !switchEl.checked;
+      }, 10);
+    } else if ('vibrate' in navigator) {
+      // Use Vibration API for Android and other devices
       try {
-        // Use a longer duration (30ms) for better reliability across devices
-        // iOS Safari sometimes needs a slightly longer duration to register
         navigator.vibrate(30);
       } catch (e) {
         // Silently fail if vibration is blocked or not supported
@@ -91,6 +102,14 @@ export default function Soundboard({ words }: SoundboardProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4 sm:p-6">
+      {/* Hidden iOS haptic switch - iOS 18+ workaround for haptic feedback */}
+      <input
+        ref={iosHapticSwitchRef}
+        type="checkbox"
+        className="sr-only"
+        style={{ display: 'none' }}
+        aria-hidden="true"
+      />
       <div className="max-w-4xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-bold text-amber-900 mb-2">
