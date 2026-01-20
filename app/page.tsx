@@ -1,7 +1,13 @@
+import PasswordGate from '@/components/PasswordGate';
+import Soundboard from '@/components/Soundboard';
+import { getWords } from '@/lib/data';
+
 export default function Home() {
+  const words = getWords();
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold">Little Words</h1>
-    </main>
+    <PasswordGate>
+      <Soundboard words={words} />
+    </PasswordGate>
   );
 }

@@ -33,3 +33,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# audio workflow files (raw and cleaned versions)
+# Note: public/audio/ is NOT ignored - those are the final assets used by the app
+audio/raw/**
+audio/cleaned/**

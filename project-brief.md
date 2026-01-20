@@ -83,3 +83,11 @@ This is a personal keepsake, not a commercial product.
 - Optimize for emotional value, not technical sophistication
 - Prefer clarity and maintainability over abstraction
 - Keep the project private, lightweight, and easy to share
+
+---
+
+## Repo Organization
+- Keep static assets (audio) in `public/audio/`.
+- Keep app data/config (e.g. words.json) out of `public/`.
+- Prefer simple file structure
+- Avoid abstractions unless V1 requires them.

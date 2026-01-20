@@ -1,4 +1,21 @@
 [
-  { "id": "mama", "label": "Mama", "emoji": "❤️", "src": "/audio/mama.mp3" },
-  { "id": "dada", "label": "Dada", "emoji": "🧢", "src": "/audio/dada.mp3" }
+  { "id": "avocado", "label": "Avocado", "emoji": "🥑", "src": "/audio/Avocado.m4a" },
+  { "id": "baby", "label": "Baby", "emoji": "👶", "src": "/audio/Baby.m4a" },
+  { "id": "chapstick", "label": "Chapstick", "emoji": "💄", "src": "/audio/Chapstick.m4a" },
+  { "id": "dada", "label": "Dada", "emoji": "👨", "src": "/audio/Dada.m4a" },
+  { "id": "dada-whisper", "label": "Dada Whisper", "emoji": "🤫", "src": "/audio/Dada Whisper.m4a" },
+  { "id": "dip", "label": "Dip", "emoji": "🍯", "src": "/audio/Dip.m4a" },
+  { "id": "doggie", "label": "Doggie", "emoji": "🐶", "src": "/audio/Doggie.m4a" },
+  { "id": "book", "label": "Book", "emoji": "📚", "src": "/audio/Book.m4a" },
+  { "id": "happy", "label": "Happy", "emoji": "😊", "src": "/audio/Happy.m4a" },
+  { "id": "hat", "label": "Hat", "emoji": "🎩", "src": "/audio/Hat.m4a" },
+  { "id": "noonoo", "label": "Noodle", "emoji": "🍜", "src": "/audio/Noonoo.m4a" },
+  { "id": "pomegranate", "label": "Pomegranate", "emoji": "🍒", "src": "/audio/Pomegranate.m4a" },
+  { "id": "ready", "label": "Ready", "emoji": "👌", "src": "/audio/Ready.m4a" },
+  { "id": "shoe", "label": "Shoe", "emoji": "👟", "src": "/audio/Shoe.m4a" },
+  { "id": "stamp", "label": "Stamp", "emoji": "💟", "src": "/audio/Stamp.m4a" },
+  { "id": "up", "label": "Up", "emoji": "👆", "src": "/audio/Up.m4a" },
+  { "id": "wash", "label": "Wash", "emoji": "🧼", "src": "/audio/Wash.m4a" },
+  { "id": "wawa", "label": "Wawa", "emoji": "💦", "src": "/audio/Wawa.m4a" },
+  { "id": "yeah", "label": "Yeah", "emoji": "👍", "src": "/audio/Yeah.m4a" }
 ]
