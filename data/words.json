@@ -1,0 +1,4 @@
+[
+  { "id": "mama", "label": "Mama", "emoji": "❤️", "src": "/audio/mama.mp3" },
+  { "id": "dada", "label": "Dada", "emoji": "🧢", "src": "/audio/dada.mp3" }
+]
