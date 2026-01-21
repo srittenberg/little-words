@@ -24,6 +24,13 @@ interface Sparkle {
   y: number;
 }
 
+// Extend Window interface for webkit prefix
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 export default function Soundboard({ words }: SoundboardProps) {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [tappedId, setTappedId] = useState<string | null>(null);
@@ -31,8 +38,10 @@ export default function Soundboard({ words }: SoundboardProps) {
   const [sparkles, setSparkles] = useState<Map<string, Sparkle[]>>(new Map());
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
   const currentlyPlayingRef = useRef<string | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioUnlockedRef = useRef(false);
 
-  // Cleanup audio elements on unmount only
+  // Cleanup audio elements and context on unmount
   useEffect(() => {
     return () => {
       audioRefs.current.forEach((audio) => {
@@ -40,10 +49,49 @@ export default function Soundboard({ words }: SoundboardProps) {
         audio.src = '';
       });
       audioRefs.current.clear();
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
     };
   }, []);
 
+  // Unlock iOS Safari audio on first user interaction
+  const unlockAudio = async () => {
+    if (audioUnlockedRef.current) return;
+
+    try {
+      // Create AudioContext (with webkit prefix for older Safari)
+      if (!audioContextRef.current) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioContextRef.current = new AudioContextClass();
+        }
+      }
+
+      // Resume if suspended
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+
+      // Play a silent buffer to fully unlock the audio system
+      if (audioContextRef.current) {
+        const buffer = audioContextRef.current.createBuffer(1, 1, 22050);
+        const source = audioContextRef.current.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContextRef.current.destination);
+        source.start(0);
+      }
+
+      audioUnlockedRef.current = true;
+    } catch (err) {
+      console.error('Failed to unlock audio:', err);
+    }
+  };
+
   const handlePlay = async (word: Word, showSparkles = true) => {
+    // Unlock audio on first interaction (required for iOS Safari)
+    await unlockAudio();
+
     // Trigger tap animation
     setTappedId(word.id);
     setTimeout(() => setTappedId(null), 200);
