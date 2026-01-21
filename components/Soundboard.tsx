@@ -18,12 +18,18 @@ function getCardVariation(index: number) {
   return { rotation, offset };
 }
 
+interface Sparkle {
+  id: string;
+  x: number;
+  y: number;
+}
+
 export default function Soundboard({ words }: SoundboardProps) {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [tappedId, setTappedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [sparkles, setSparkles] = useState<Map<string, Sparkle[]>>(new Map());
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
-  const iosHapticSwitchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Preload audio elements
@@ -43,37 +49,39 @@ export default function Soundboard({ words }: SoundboardProps) {
     };
   }, [words]);
 
-  // Haptic feedback helper function
-  const triggerHaptic = () => {
-    // iOS Safari doesn't support navigator.vibrate(), so we use a workaround
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    
-    if (isIOS && iosHapticSwitchRef.current) {
-      // iOS 18+ workaround: toggle a switch-style checkbox to trigger haptic
-      const switchEl = iosHapticSwitchRef.current;
-      switchEl.checked = !switchEl.checked;
-      // Toggle back immediately to allow repeated haptics
-      setTimeout(() => {
-        switchEl.checked = !switchEl.checked;
-      }, 10);
-    } else if ('vibrate' in navigator) {
-      // Use Vibration API for Android and other devices
-      try {
-        navigator.vibrate(30);
-      } catch (e) {
-        // Silently fail if vibration is blocked or not supported
-      }
-    }
-  };
-
-  const handlePlay = (word: Word) => {
-    // Trigger haptic feedback on tap
-    triggerHaptic();
-
+  const handlePlay = (word: Word, showSparkles = true) => {
     // Trigger tap animation
     setTappedId(word.id);
     setTimeout(() => setTappedId(null), 200);
+
+    // Trigger sparkle burst
+    if (showSparkles) {
+      const sparkleCount = 3; // 2-4 sparkles
+      const newSparkles: Sparkle[] = [];
+      for (let i = 0; i < sparkleCount; i++) {
+        // Random position near emoji area (roughly -20px to +20px from center)
+        const angle = (Math.PI * 2 * i) / sparkleCount + Math.random() * 0.5;
+        const distance = 15 + Math.random() * 10;
+        newSparkles.push({
+          id: `${word.id}-${i}-${Date.now()}`,
+          x: Math.cos(angle) * distance,
+          y: Math.sin(angle) * distance,
+        });
+      }
+      setSparkles((prev) => {
+        const next = new Map(prev);
+        next.set(word.id, newSparkles);
+        return next;
+      });
+      // Remove sparkles after animation
+      setTimeout(() => {
+        setSparkles((prev) => {
+          const next = new Map(prev);
+          next.delete(word.id);
+          return next;
+        });
+      }, 700);
+    }
 
     // Stop any currently playing audio
     if (playingId) {
@@ -100,33 +108,44 @@ export default function Soundboard({ words }: SoundboardProps) {
     }
   };
 
+  const handleShuffle = () => {
+    if (words.length === 0) return;
+    const randomWord = words[Math.floor(Math.random() * words.length)];
+    handlePlay(randomWord, true);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 p-4 sm:p-6">
-      {/* Hidden iOS haptic switch - iOS 18+ workaround for haptic feedback */}
-      <input
-        ref={iosHapticSwitchRef}
-        type="checkbox"
-        className="sr-only"
-        style={{ display: 'none' }}
-        aria-hidden="true"
-      />
       <div className="max-w-4xl mx-auto">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-bold text-amber-900 mb-2">
-            <span className="inline-block transform rotate-[-2deg]">L</span>
-            <span className="inline-block transform rotate-[1deg]">i</span>
-            <span className="inline-block transform rotate-[-1deg]">t</span>
-            <span className="inline-block transform rotate-[1.5deg]">t</span>
-            <span className="inline-block transform rotate-[-1deg]">l</span>
-            <span className="inline-block transform rotate-[0.5deg]">e</span>
-            {' '}
-            <span className="inline-block transform rotate-[2deg]">W</span>
-            <span className="inline-block transform rotate-[-1.5deg]">o</span>
-            <span className="inline-block transform rotate-[1deg]">r</span>
-            <span className="inline-block transform rotate-[-0.5deg]">d</span>
-            <span className="inline-block transform rotate-[1deg]">s</span>
-          </h1>
-          <p className="text-amber-700 text-lg font-medium italic">Tap a word to hear it ✨</p>
+        <header className="mb-10 sm:mb-12">
+          {/* Header layout: stacked on mobile, row on desktop */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-5 sm:gap-8">
+            {/* Title + Subtitle block */}
+            <div className="flex flex-col items-center sm:items-start">
+              {/* Title as clean text with sparkle cluster */}
+              <h1 className="text-4xl sm:text-5xl font-bold text-amber-900 leading-tight">
+                little words
+                <span className="ml-1.5 text-amber-300 text-xl sm:text-2xl">✦</span>
+                <span className="text-amber-200 text-sm sm:text-base">✧</span>
+              </h1>
+              
+              {/* Subtitle */}
+              <p className="mt-2 text-amber-700/60 text-base sm:text-lg italic font-light">
+                tiny sounds, big memories
+              </p>
+            </div>
+            
+            {/* Shuffle chip */}
+            <div className="flex justify-center sm:justify-end sm:pt-2">
+              <button
+                onClick={handleShuffle}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-amber-700 text-sm font-medium rounded-full border border-amber-200/80 bg-white/60 hover:bg-amber-50 hover:border-amber-300 transition-colors duration-200 active:scale-95"
+              >
+                <span className="text-base">✨</span>
+                <span>shuffle</span>
+              </button>
+            </div>
+          </div>
         </header>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -140,6 +159,7 @@ export default function Soundboard({ words }: SoundboardProps) {
             const tapRotation = isTapped ? (index % 2 === 0 ? 8 : -8) : 0;
             const totalRotation = rotation + tapRotation;
             const hoverLift = isHovered ? -4 : 0;
+            const wordSparkles = sparkles.get(word.id) || [];
             return (
               <button
                 key={word.id}
@@ -160,15 +180,57 @@ export default function Soundboard({ words }: SoundboardProps) {
                   shadow-md hover:shadow-lg hover:shadow-amber-200/40
                   transition-all duration-300 ease-out
                   ${isPlaying 
-                    ? 'border-amber-500 bg-amber-50 shadow-lg shadow-amber-200/50' 
+                    ? 'border-amber-500 bg-amber-50 shadow-lg shadow-amber-200/50 glow-pulse' 
                     : 'border-amber-200 hover:border-amber-300'
                   }
                 `}
               >
                 {word.emoji && (
-                  <span className="text-4xl sm:text-5xl mb-2">
-                    {word.emoji}
-                  </span>
+                  <div className="relative mb-2 inline-block">
+                    {/* Sticker background */}
+                    <div 
+                      className="absolute rounded-full bg-amber-200/60 blur-sm opacity-90"
+                      style={{
+                        top: '-8px',
+                        left: '-8px',
+                        right: '-8px',
+                        bottom: '-8px',
+                      }}
+                    />
+                    <div 
+                      className="absolute rounded-full bg-amber-100/80"
+                      style={{
+                        top: '-4px',
+                        left: '-4px',
+                        right: '-4px',
+                        bottom: '-4px',
+                      }}
+                    />
+                    {/* Emoji with pop effect when playing */}
+                    <span 
+                      className="relative text-4xl sm:text-5xl block transition-transform duration-300 ease-out"
+                      style={{
+                        transform: isPlaying ? 'scale(1.06)' : 'scale(1)',
+                      }}
+                    >
+                      {word.emoji}
+                    </span>
+                    {/* Sparkle burst overlay */}
+                    {wordSparkles.map((sparkle) => (
+                      <span
+                        key={sparkle.id}
+                        className="absolute sparkle text-lg pointer-events-none"
+                        style={{
+                          left: '50%',
+                          top: '50%',
+                          '--sparkle-x': `${sparkle.x}px`,
+                          '--sparkle-y': `${sparkle.y}px`,
+                        } as React.CSSProperties & { '--sparkle-x': string; '--sparkle-y': string }}
+                      >
+                        ✨
+                      </span>
+                    ))}
+                  </div>
                 )}
                 <span className={`
                   text-base sm:text-lg font-semibold
@@ -176,11 +238,6 @@ export default function Soundboard({ words }: SoundboardProps) {
                 `}>
                   {word.label}
                 </span>
-                {isPlaying && (
-                  <div className="absolute top-2 right-2">
-                    <div className="w-3 h-3 bg-amber-500 rounded-full animate-pulse" />
-                  </div>
-                )}
               </button>
             );
           })}

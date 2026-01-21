@@ -17,5 +17,8 @@
   { "id": "up", "label": "Up", "emoji": "👆", "src": "/audio/Up.m4a" },
   { "id": "wash", "label": "Wash", "emoji": "🧼", "src": "/audio/Wash.m4a" },
   { "id": "wawa", "label": "Wawa", "emoji": "💦", "src": "/audio/Wawa.m4a" },
-  { "id": "yeah", "label": "Yeah", "emoji": "👍", "src": "/audio/Yeah.m4a" }
+  { "id": "yeah", "label": "Yeah", "emoji": "👍", "src": "/audio/Yeah.m4a" },
+  { "id": "hi", "label": "Hi", "emoji": "👋", "src": "/audio/Hi.m4a" },
+  { "id": "chocolate", "label": "Chocolate", "emoji": "🍫", "src": "/audio/Chocolate.m4a" },
+  { "id": "mama", "label": "Mama", "emoji": "👩", "src": "/audio/Mama.m4a" }
 ]
