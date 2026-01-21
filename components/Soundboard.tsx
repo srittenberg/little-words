@@ -30,26 +30,20 @@ export default function Soundboard({ words }: SoundboardProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [sparkles, setSparkles] = useState<Map<string, Sparkle[]>>(new Map());
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const currentlyPlayingRef = useRef<string | null>(null);
 
+  // Cleanup audio elements on unmount only
   useEffect(() => {
-    // Preload audio elements
-    words.forEach((word) => {
-      const audio = new Audio(word.src);
-      audio.preload = 'auto';
-      audioRefs.current.set(word.id, audio);
-    });
-
     return () => {
-      // Cleanup all audio elements
       audioRefs.current.forEach((audio) => {
         audio.pause();
         audio.src = '';
       });
       audioRefs.current.clear();
     };
-  }, [words]);
+  }, []);
 
-  const handlePlay = (word: Word, showSparkles = true) => {
+  const handlePlay = async (word: Word, showSparkles = true) => {
     // Trigger tap animation
     setTappedId(word.id);
     setTimeout(() => setTappedId(null), 200);
@@ -84,34 +78,55 @@ export default function Soundboard({ words }: SoundboardProps) {
     }
 
     // Stop any currently playing audio
-    if (playingId) {
-      const currentAudio = audioRefs.current.get(playingId);
+    if (currentlyPlayingRef.current) {
+      const currentAudio = audioRefs.current.get(currentlyPlayingRef.current);
       if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
       }
     }
 
-    const audio = audioRefs.current.get(word.id);
-    if (audio) {
-      audio.play();
+    // Get or create audio element (lazy creation for iOS Safari compatibility)
+    let audio = audioRefs.current.get(word.id);
+    if (!audio) {
+      audio = new Audio(word.src);
+      audio.preload = 'auto';
+      audio.setAttribute('playsinline', '');
+      audio.load();
+      audioRefs.current.set(word.id, audio);
+    }
+
+    // Reset to start for repeated taps
+    audio.currentTime = 0;
+
+    // Set up event handlers
+    audio.onended = () => {
+      setPlayingId(null);
+      currentlyPlayingRef.current = null;
+    };
+
+    audio.onerror = () => {
+      setPlayingId(null);
+      currentlyPlayingRef.current = null;
+      console.error(`Error playing audio for ${word.label}`);
+    };
+
+    // Play audio with error handling
+    try {
+      currentlyPlayingRef.current = word.id;
       setPlayingId(word.id);
-
-      audio.onended = () => {
-        setPlayingId(null);
-      };
-
-      audio.onerror = () => {
-        setPlayingId(null);
-        console.error(`Error playing audio for ${word.label}`);
-      };
+      await audio.play();
+    } catch (err) {
+      console.error(`Playback failed for ${word.label}:`, err);
+      setPlayingId(null);
+      currentlyPlayingRef.current = null;
     }
   };
 
-  const handleShuffle = () => {
+  const handleShuffle = async () => {
     if (words.length === 0) return;
     const randomWord = words[Math.floor(Math.random() * words.length)];
-    handlePlay(randomWord, true);
+    await handlePlay(randomWord, true);
   };
 
   return (
