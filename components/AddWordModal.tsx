@@ -1,10 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import AudioInputSelector from './AudioInputSelector';
 import AudioRecorder from './AudioRecorder';
 import WaveformTrimmer from './WaveformTrimmer';
 import { getAudioDuration } from '@/lib/audioUtils';
+
+// Dynamically import EmojiPicker to avoid SSR issues
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
 
 interface AddWordModalProps {
   isOpen: boolean;
@@ -16,17 +20,6 @@ type Step = 'select' | 'record' | 'upload' | 'trim' | 'details';
 
 // Maximum audio duration in seconds
 const MAX_AUDIO_DURATION = 30;
-
-// Common emojis for quick selection
-const EMOJI_OPTIONS = [
-  '😊', '😂', '🥰', '😍', '🤗', '😎', '🥳', '😴',
-  '👶', '👧', '👦', '👨', '👩', '👴', '👵', '🐶',
-  '🐱', '🐰', '🐻', '🦊', '🐸', '🐵', '🐷', '🐮',
-  '🍎', '🍌', '🍓', '🥑', '🍕', '🍔', '🍦', '🍪',
-  '⚽', '🏀', '🎨', '🎵', '📚', '✨', '❤️', '🌟',
-  '🚗', '✈️', '🏠', '🌈', '☀️', '🌙', '⭐', '🔥',
-  '👋', '👍', '👏', '🙌', '💪', '🤝', '👆', '✌️',
-];
 
 export default function AddWordModal({ isOpen, onClose, onSuccess }: AddWordModalProps) {
   const [step, setStep] = useState<Step>('select');
@@ -382,30 +375,35 @@ export default function AddWordModal({ isOpen, onClose, onSuccess }: AddWordModa
                     </svg>
                   </button>
 
+                  {/* Mobile fullscreen emoji picker overlay */}
                   {showEmojiPicker && (
-                    <div className="absolute z-10 mt-2 w-full p-3 bg-white border-2 border-amber-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                      <div className="grid grid-cols-8 gap-1">
-                        {EMOJI_OPTIONS.map((e) => (
-                          <button
-                            key={e}
-                            type="button"
-                            onClick={() => {
-                              setEmoji(e);
-                              setShowEmojiPicker(false);
-                            }}
-                            className="p-2 text-xl hover:bg-amber-100 rounded-lg transition-colors"
-                          >
-                            {e}
-                          </button>
-                        ))}
+                    <div className="fixed inset-0 z-50 bg-white flex flex-col sm:absolute sm:inset-auto sm:z-10 sm:mt-2 sm:w-full sm:rounded-xl sm:border-2 sm:border-amber-200 sm:shadow-lg sm:max-h-[400px] sm:overflow-hidden">
+                      {/* Mobile header */}
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 sm:hidden">
+                        <h3 className="text-lg font-semibold text-amber-900">Pick an Emoji</h3>
+                        <button
+                          type="button"
+                          onClick={() => setShowEmojiPicker(false)}
+                          className="p-2 text-amber-600 hover:text-amber-800 hover:bg-amber-100 rounded-full transition-colors"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </div>
-                      <div className="mt-2 pt-2 border-t border-amber-100">
-                        <input
-                          type="text"
-                          value={emoji}
-                          onChange={(e) => setEmoji(e.target.value)}
-                          placeholder="Or type/paste emoji"
-                          className="w-full px-3 py-2 text-sm border border-amber-200 rounded-lg focus:outline-none focus:border-amber-400"
+                      {/* Emoji picker */}
+                      <div className="flex-1 overflow-hidden">
+                        <EmojiPicker
+                          onEmojiClick={(emojiData) => {
+                            setEmoji(emojiData.emoji);
+                            setShowEmojiPicker(false);
+                          }}
+                          searchPlaceHolder="Search emojis..."
+                          width="100%"
+                          height="100%"
+                          previewConfig={{ showPreview: false }}
+                          skinTonesDisabled
+                          lazyLoadEmojis
                         />
                       </div>
                     </div>
