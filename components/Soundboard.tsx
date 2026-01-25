@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Word } from '@/lib/types';
+import AddWordModal from './AddWordModal';
 
 interface SoundboardProps {
   words: Word[];
+  onRefresh?: () => void;
 }
 
 // Deterministic card variation based on index
@@ -31,11 +33,12 @@ declare global {
   }
 }
 
-export default function Soundboard({ words }: SoundboardProps) {
+export default function Soundboard({ words, onRefresh }: SoundboardProps) {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [tappedId, setTappedId] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [sparkles, setSparkles] = useState<Map<string, Sparkle[]>>(new Map());
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
   const currentlyPlayingRef = useRef<string | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -43,14 +46,16 @@ export default function Soundboard({ words }: SoundboardProps) {
 
   // Cleanup audio elements and context on unmount
   useEffect(() => {
+    const refs = audioRefs.current;
+    const context = audioContextRef.current;
     return () => {
-      audioRefs.current.forEach((audio) => {
+      refs.forEach((audio) => {
         audio.pause();
         audio.src = '';
       });
-      audioRefs.current.clear();
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
+      refs.clear();
+      if (context) {
+        context.close();
       }
     };
   }, []);
@@ -304,8 +309,71 @@ export default function Soundboard({ words }: SoundboardProps) {
               </button>
             );
           })}
+          
+          {/* Add Word Button */}
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            onMouseEnter={() => setHoveredId('add-word')}
+            onMouseLeave={() => setHoveredId(null)}
+            style={{
+              transform: `rotate(${(words.length % 3 - 1) * 1}deg) translateY(${(words.length % 5 - 2) * 0.5 + (hoveredId === 'add-word' ? -4 : 0)}px) scale(${hoveredId === 'add-word' ? 1.05 : 1})`,
+              transformOrigin: 'center',
+            }}
+            className="
+              relative flex flex-col items-center justify-center
+              min-h-[120px] sm:min-h-[140px]
+              px-4 py-6
+              rounded-2xl sm:rounded-3xl
+              bg-amber-50/50
+              border-2 border-dashed border-amber-300
+              hover:bg-amber-50 hover:border-amber-400
+              shadow-sm hover:shadow-md hover:shadow-amber-200/40
+              transition-all duration-300 ease-out
+              group
+            "
+          >
+            <div className="relative mb-2 inline-block">
+              {/* Soft background glow */}
+              <div 
+                className="absolute rounded-full bg-amber-200/40 blur-sm opacity-70 group-hover:opacity-90 transition-opacity"
+                style={{
+                  top: '-8px',
+                  left: '-8px',
+                  right: '-8px',
+                  bottom: '-8px',
+                }}
+              />
+              <div 
+                className="absolute rounded-full bg-amber-100/60 group-hover:bg-amber-100/80 transition-colors"
+                style={{
+                  top: '-4px',
+                  left: '-4px',
+                  right: '-4px',
+                  bottom: '-4px',
+                }}
+              />
+              {/* Plus icon */}
+              <span className="relative text-4xl sm:text-5xl block text-amber-400 group-hover:text-amber-500 transition-colors">
+                +
+              </span>
+            </div>
+            <span className="text-base sm:text-lg font-semibold text-amber-500 group-hover:text-amber-600 transition-colors">
+              add
+            </span>
+          </button>
         </div>
       </div>
+      
+      {/* Add Word Modal */}
+      <AddWordModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={() => {
+          if (onRefresh) {
+            onRefresh();
+          }
+        }}
+      />
     </div>
   );
 }

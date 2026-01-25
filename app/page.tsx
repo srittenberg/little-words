@@ -1,13 +1,14 @@
 import PasswordGate from '@/components/PasswordGate';
-import Soundboard from '@/components/Soundboard';
+import SoundboardWithData from '@/components/SoundboardWithData';
 import { getWords } from '@/lib/data';
 
 export default function Home() {
-  const words = getWords();
+  // Get initial words server-side for fast first render
+  const initialWords = getWords();
 
   return (
     <PasswordGate>
-      <Soundboard words={words} />
+      <SoundboardWithData initialWords={initialWords} />
     </PasswordGate>
   );
 }
