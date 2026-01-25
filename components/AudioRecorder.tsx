@@ -11,11 +11,12 @@ import {
 interface AudioRecorderProps {
   onRecordingComplete: (blob: Blob) => void;
   onCancel: () => void;
+  maxDuration?: number; // Maximum recording duration in seconds
 }
 
 type RecordingState = 'idle' | 'requesting' | 'ready' | 'recording' | 'error';
 
-export default function AudioRecorder({ onRecordingComplete, onCancel }: AudioRecorderProps) {
+export default function AudioRecorder({ onRecordingComplete, onCancel, maxDuration }: AudioRecorderProps) {
   const [state, setState] = useState<RecordingState>('idle');
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +26,7 @@ export default function AudioRecorder({ onRecordingComplete, onCancel }: AudioRe
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
+  const stopRecordingRef = useRef<(() => void) | null>(null);
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
@@ -109,17 +111,22 @@ export default function AudioRecorder({ onRecordingComplete, onCancel }: AudioRe
       startTimeRef.current = Date.now();
       setState('recording');
 
-      // Start timer
+      // Start timer with auto-stop at max duration
       timerRef.current = setInterval(() => {
         const elapsed = (Date.now() - startTimeRef.current) / 1000;
         setDuration(elapsed);
+        
+        // Auto-stop when max duration is reached
+        if (maxDuration && elapsed >= maxDuration) {
+          stopRecordingRef.current?.();
+        }
       }, 100);
     } catch (err) {
       console.error('Failed to start recording:', err);
       setError('Failed to start recording. Please try again.');
       setState('error');
     }
-  }, [onRecordingComplete]);
+  }, [onRecordingComplete, maxDuration]);
 
   const stopRecording = useCallback(() => {
     if (timerRef.current) {
@@ -134,6 +141,11 @@ export default function AudioRecorder({ onRecordingComplete, onCancel }: AudioRe
     stopStream();
     setState('idle');
   }, [stopStream]);
+
+  // Keep ref updated for auto-stop callback
+  useEffect(() => {
+    stopRecordingRef.current = stopRecording;
+  }, [stopRecording]);
 
   const handleCancel = useCallback(() => {
     if (timerRef.current) {
@@ -179,8 +191,20 @@ export default function AudioRecorder({ onRecordingComplete, onCancel }: AudioRe
       )}
 
       {/* Timer Display */}
-      <div className="mb-8 text-5xl font-mono text-amber-900 tabular-nums">
-        {formatTime(duration)}
+      <div className="mb-8 text-center">
+        <div className="text-5xl font-mono text-amber-900 tabular-nums">
+          {formatTime(duration)}
+        </div>
+        {maxDuration && state === 'recording' && (
+          <div className="mt-2 text-sm text-amber-600">
+            {Math.ceil(maxDuration - duration)}s remaining
+          </div>
+        )}
+        {maxDuration && state !== 'recording' && (
+          <div className="mt-2 text-sm text-amber-500">
+            Max: {maxDuration}s
+          </div>
+        )}
       </div>
 
       {/* Recording Button */}

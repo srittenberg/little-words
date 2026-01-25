@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import AudioInputSelector from './AudioInputSelector';
 import AudioRecorder from './AudioRecorder';
 import WaveformTrimmer from './WaveformTrimmer';
+import { getAudioDuration } from '@/lib/audioUtils';
 
 interface AddWordModalProps {
   isOpen: boolean;
@@ -12,6 +13,9 @@ interface AddWordModalProps {
 }
 
 type Step = 'select' | 'record' | 'upload' | 'trim' | 'details';
+
+// Maximum audio duration in seconds
+const MAX_AUDIO_DURATION = 30;
 
 // Common emojis for quick selection
 const EMOJI_OPTIONS = [
@@ -33,6 +37,7 @@ export default function AddWordModal({ isOpen, onClose, onSuccess }: AddWordModa
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -47,6 +52,7 @@ export default function AddWordModal({ isOpen, onClose, onSuccess }: AddWordModa
     setError(null);
     setShowEmojiPicker(false);
     setIsSubmitting(false);
+    setIsValidating(false);
   }, []);
 
   useEffect(() => {
@@ -81,9 +87,12 @@ export default function AddWordModal({ isOpen, onClose, onSuccess }: AddWordModa
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Reset file input for future use
+    e.target.value = '';
 
     // Validate file type
     const validTypes = ['audio/mp4', 'audio/mpeg', 'audio/wav', 'audio/x-m4a', 'audio/m4a', 'audio/webm'];
@@ -97,17 +106,32 @@ export default function AddWordModal({ isOpen, onClose, onSuccess }: AddWordModa
       return;
     }
 
-    setAudioBlob(file);
+    // Check audio duration
+    setIsValidating(true);
     setError(null);
-
-    // Auto-fill label from filename
-    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
-    setLabel(nameWithoutExt);
-
-    setStep('trim');
     
-    // Reset file input for future use
-    e.target.value = '';
+    try {
+      const duration = await getAudioDuration(file);
+      
+      if (duration > MAX_AUDIO_DURATION) {
+        setError(`Audio is too long (${Math.round(duration)}s). Maximum allowed is ${MAX_AUDIO_DURATION} seconds.`);
+        setIsValidating(false);
+        return;
+      }
+
+      setAudioBlob(file);
+
+      // Auto-fill label from filename
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+      setLabel(nameWithoutExt);
+
+      setStep('trim');
+    } catch (err) {
+      console.error('Failed to read audio duration:', err);
+      setError('Could not read audio file. Please try a different file.');
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const handleRecordingComplete = (blob: Blob) => {
@@ -274,10 +298,20 @@ export default function AddWordModal({ isOpen, onClose, onSuccess }: AddWordModa
           {/* Step: Select Input Method */}
           {step === 'select' && (
             <div className="p-6">
-              <AudioInputSelector
-                onSelectRecord={handleSelectRecord}
-                onSelectUpload={handleSelectUpload}
-              />
+              {isValidating ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <svg className="animate-spin w-8 h-8 text-amber-500 mb-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <p className="text-amber-700">Checking audio file...</p>
+                </div>
+              ) : (
+                <AudioInputSelector
+                  onSelectRecord={handleSelectRecord}
+                  onSelectUpload={handleSelectUpload}
+                />
+              )}
               {error && (
                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm text-center">
                   {error}
@@ -292,6 +326,7 @@ export default function AddWordModal({ isOpen, onClose, onSuccess }: AddWordModa
               <AudioRecorder
                 onRecordingComplete={handleRecordingComplete}
                 onCancel={() => setStep('select')}
+                maxDuration={MAX_AUDIO_DURATION}
               />
             </div>
           )}
